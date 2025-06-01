@@ -19,6 +19,7 @@ if (process.env.NODE_ENV !== 'production') {
 
 // Middleware
 app.use(express.json());
+app.use(express.static('public'));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
