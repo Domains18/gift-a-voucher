@@ -6,7 +6,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const successModal = new bootstrap.Modal(document.getElementById('successModal'));
     const errorModal = new bootstrap.Modal(document.getElementById('errorModal'));
     
-    // Toggle between email and wallet address fields
     recipientTypeSelect.addEventListener('change', function() {
         if (this.value === 'email') {
             emailField.classList.remove('d-none');
@@ -19,21 +18,17 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // Form submission
     form.addEventListener('submit', async function(e) {
         e.preventDefault();
         
-        // Reset validation
         resetValidation();
         
-        // Get form values
         const recipientType = recipientTypeSelect.value;
         const recipientEmail = document.getElementById('recipientEmail').value;
         const walletAddress = document.getElementById('walletAddress').value;
         const amount = parseFloat(document.getElementById('amount').value);
         const message = document.getElementById('message').value;
         
-        // Validate form
         let isValid = true;
         
         if (recipientType === 'email' && !validateEmail(recipientEmail)) {
@@ -55,7 +50,6 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        // Prepare request payload
         const payload = {
             amount: amount
         };
@@ -71,13 +65,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         try {
-            // Show loading state
             const submitButton = form.querySelector('button[type="submit"]');
             const originalButtonText = submitButton.textContent;
             submitButton.disabled = true;
             submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...';
             
-            // Send API request
             const response = await fetch('/api/vouchers/gift', {
                 method: 'POST',
                 headers: {
@@ -88,20 +80,16 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const data = await response.json();
             
-            // Reset button state
-            submitButton.disabled = false;
+                submitButton.disabled = false;
             submitButton.textContent = originalButtonText;
             
             if (response.ok && data.success) {
-                // Show success modal
                 document.getElementById('voucherId').textContent = data.data.id;
                 form.reset();
                 successModal.show();
                 
-                // Simulate processing the voucher (for demo purposes)
                 simulateProcessVoucher(payload);
             } else {
-                // Show error modal
                 let errorMessage = 'Failed to process your request.';
                 if (data.error) {
                     if (typeof data.error === 'string') {
@@ -120,7 +108,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // Helper functions
     function resetValidation() {
         const invalidInputs = form.querySelectorAll('.is-invalid');
         invalidInputs.forEach(input => input.classList.remove('is-invalid'));
@@ -132,12 +119,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function validateWalletAddress(address) {
-        // Simple validation for demonstration
-        // In a real app, you would use a more sophisticated validation
         return address.trim().length >= 10;
     }
     
-    // For demonstration purposes - simulate processing the voucher
     async function simulateProcessVoucher(payload) {
         try {
             await fetch('/api/simulate/process-voucher', {

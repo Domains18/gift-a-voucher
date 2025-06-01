@@ -1,78 +1,140 @@
 import { SQSEvent, SQSRecord } from '../types/aws-lambda';
 import { DynamoDBService } from '../services/dynamodb.service';
 import { VoucherGiftMessage } from '../models/voucher';
+import { Logger } from '../utils/logger';
 
-// Constants for retry handling
 const MAX_RETRY_COUNT = 3;
 const RETRY_ERRORS = ['ConnectionError', 'TimeoutError', 'NetworkError'];
 
-// Monitoring metrics
 const metrics = {
   processedCount: 0,
   failedCount: 0,
   retryCount: 0,
   dlqCount: 0,
-  processingTimeMs: 0
+  processingTimeMs: 0,
+  lastProcessedAt: new Date().toISOString(),
+  lastFailedAt: null as string | null,
+  lastErrorMessage: null as string | null
 };
+
+function logMetrics(context: string) {
+  Logger.info('METRICS', `Processing metrics for ${context}`, metrics);
+}
 
 async function processRecord(record: SQSRecord): Promise<void> {
   const startTime = Date.now();
   const receiveCount = parseInt(record.attributes.ApproximateReceiveCount, 10);
-  console.log(`[MONITOR] Processing message ${record.messageId}, receive count: ${receiveCount}`);
+  const messageId = record.messageId;
+  
+  Logger.info('PROCESSOR', `Processing message ${messageId}`, {
+    messageId,
+    receiveCount,
+    sentTimestamp: record.attributes.SentTimestamp,
+    approximateFirstReceiveTimestamp: record.attributes.ApproximateFirstReceiveTimestamp
+  });
   
   try {
+    Logger.debug('PROCESSOR', 'Parsing message body');
     const message: VoucherGiftMessage = JSON.parse(record.body);
-    console.log(`[MONITOR] Processing voucher gift: ${message.voucherId}`);
+    
+    Logger.info('PROCESSOR', `Processing voucher gift: ${message.voucherId}`, {
+      voucherId: message.voucherId,
+      messageId,
+      recipientType: message.recipientEmail ? 'email' : 'wallet',
+      amount: message.amount
+    });
 
-    // Simulate a random error for testing retry logic (10% chance of failure)
     if (Math.random() < 0.1) {
       const errorTypes = ['ConnectionError', 'TimeoutError', 'ValidationError'];
       const randomError = errorTypes[Math.floor(Math.random() * errorTypes.length)];
+      Logger.debug('PROCESSOR', 'Simulating random error for testing', { errorType: randomError });
       throw new Error(randomError);
     }
 
-    // Process the message
     if (message.recipientEmail) {
-      console.log(`[MONITOR] Sending voucher gift email to ${message.recipientEmail}`);
-      console.log(`[MONITOR] Amount: ${message.amount}`);
-      if (message.message) {
-        console.log(`[MONITOR] Message: ${message.message}`);
-      }
+      Logger.info('PROCESSOR', `Sending voucher gift email to ${message.recipientEmail}`, {
+        voucherId: message.voucherId,
+        recipientEmail: message.recipientEmail,
+        amount: message.amount,
+        hasMessage: !!message.message
+      });
+      
+      Logger.debug('PROCESSOR', 'Email would be sent with the following details', {
+        to: message.recipientEmail,
+        subject: 'You received a voucher gift!',
+        amount: message.amount,
+        message: message.message || '(No message provided)'
+      });
+      
     } else if (message.walletAddress) {
-      console.log(`[MONITOR] Sending voucher gift to wallet ${message.walletAddress}`);
-      console.log(`[MONITOR] Amount: ${message.amount}`);
-      if (message.message) {
-        console.log(`[MONITOR] Message: ${message.message}`);
-      }
+      Logger.info('PROCESSOR', `Sending voucher gift to wallet ${message.walletAddress}`, {
+        voucherId: message.voucherId,
+        walletAddress: message.walletAddress,
+        amount: message.amount,
+        hasMessage: !!message.message
+      });
+      
+      Logger.debug('PROCESSOR', 'Blockchain transaction would be initiated with details', {
+        toAddress: message.walletAddress,
+        amount: message.amount,
+        memo: message.message || '(No message provided)'
+      });
     }
 
-    await DynamoDBService.updateVoucherStatus(message.voucherId, 'SENT');
-    console.log(`[MONITOR] Voucher gift ${message.voucherId} processed successfully`);
+    Logger.debug('PROCESSOR', `Updating voucher ${message.voucherId} status to SENT`);
+    const updatedVoucher = await DynamoDBService.updateVoucherStatus(message.voucherId, 'SENT');
     
-    // Update metrics
+    if (updatedVoucher) {
+      Logger.info('PROCESSOR', `Voucher gift ${message.voucherId} processed successfully`, {
+        voucherId: message.voucherId,
+        status: 'SENT',
+        processingTime: Date.now() - startTime
+      });
+    } else {
+      Logger.warn('PROCESSOR', `Voucher ${message.voucherId} not found when updating status`, {
+        voucherId: message.voucherId
+      });
+    }
+    
     metrics.processedCount++;
     metrics.processingTimeMs += (Date.now() - startTime);
+    metrics.lastProcessedAt = new Date().toISOString();
     
-    // Log metrics for monitoring
-    console.log(`[METRICS] ${JSON.stringify(metrics)}`);
+    logMetrics('success');
+    
   } catch (error: any) {
+    const processingTime = Date.now() - startTime;
     metrics.failedCount++;
-    console.error(`[MONITOR] Error processing voucher gift: ${error.message}`);
+    metrics.lastFailedAt = new Date().toISOString();
+    metrics.lastErrorMessage = error.message;
     
-    // Check if we should retry based on error type and retry count
+    Logger.error('PROCESSOR', `Error processing voucher gift (${processingTime}ms)`, error);
+    
     const shouldRetry = RETRY_ERRORS.some(retryError => error.message.includes(retryError));
     const canRetry = receiveCount < MAX_RETRY_COUNT;
     
+    Logger.debug('PROCESSOR', 'Retry analysis', {
+      shouldRetry,
+      canRetry,
+      receiveCount,
+      maxRetryCount: MAX_RETRY_COUNT,
+      errorMessage: error.message
+    });
+    
     if (shouldRetry && canRetry) {
-      console.log(`[MONITOR] Message will be retried, current count: ${receiveCount}`);
+      Logger.info('PROCESSOR', `Message will be retried, current count: ${receiveCount}`, {
+        messageId,
+        receiveCount,
+        maxRetryCount: MAX_RETRY_COUNT
+      });
       metrics.retryCount++;
-      // In a real environment, we would let the SQS visibility timeout expire to retry
-      // For this simulation, we're just logging the retry intent
     } else if (receiveCount >= MAX_RETRY_COUNT) {
-      console.log(`[MONITOR] Message exceeded max retries, sending to DLQ`);
+      Logger.warn('PROCESSOR', `Message exceeded max retries, sending to DLQ`, {
+        messageId,
+        receiveCount,
+        maxRetryCount: MAX_RETRY_COUNT
+      });
       metrics.dlqCount++;
-      // In a real environment, this would be handled by SQS redrive policy to DLQ
-      // For this simulation, we're just logging the DLQ intent
     }
     
     if (record.body) {
@@ -80,67 +142,104 @@ async function processRecord(record: SQSRecord): Promise<void> {
         const message: VoucherGiftMessage = JSON.parse(record.body);
         if (message.voucherId) {
           if (receiveCount >= MAX_RETRY_COUNT) {
+            Logger.info('PROCESSOR', `Updating voucher ${message.voucherId} status to FAILED after max retries`);
             await DynamoDBService.updateVoucherStatus(message.voucherId, 'FAILED');
-            console.log(`[MONITOR] Updated voucher ${message.voucherId} status to FAILED after max retries`);
+            Logger.info('PROCESSOR', `Updated voucher ${message.voucherId} status to FAILED after max retries`);
           } else if (shouldRetry) {
             // We could add a 'RETRYING' status if needed
-            console.log(`[MONITOR] Voucher ${message.voucherId} will be retried`);
+            Logger.info('PROCESSOR', `Voucher ${message.voucherId} will be retried`, {
+              voucherId: message.voucherId,
+              receiveCount,
+              maxRetryCount: MAX_RETRY_COUNT
+            });
           } else {
+            Logger.info('PROCESSOR', `Updating voucher ${message.voucherId} status to FAILED due to non-retryable error`);
             await DynamoDBService.updateVoucherStatus(message.voucherId, 'FAILED');
-            console.log(`[MONITOR] Updated voucher ${message.voucherId} status to FAILED due to non-retryable error`);
+            Logger.info('PROCESSOR', `Updated voucher ${message.voucherId} status to FAILED due to non-retryable error`);
           }
         }
       } catch (parseError) {
-        console.error(`[MONITOR] Error parsing message body: ${parseError}`);
+        Logger.error('PROCESSOR', `Error parsing message body for error handling`, parseError);
       }
     }
     
-    // Log metrics for monitoring
-    console.log(`[METRICS] ${JSON.stringify(metrics)}`);
+    logMetrics('failure');
     
-    // Only rethrow retryable errors if we haven't exceeded max retries
-    // This allows SQS to retry the message
     if (shouldRetry && canRetry) {
+      Logger.debug('PROCESSOR', 'Rethrowing error to trigger retry');
       throw error;
     }
   }
 }
 
 export async function processVoucherGiftHandler(event: SQSEvent): Promise<void> {
-  console.log(`[MONITOR] Received ${event.Records.length} records to process`);
+  const handlerStart = Date.now();
+  Logger.info('HANDLER', `Received ${event.Records.length} records to process`, {
+    recordCount: event.Records.length,
+    eventSource: event.Records[0]?.eventSource,
+    region: event.Records[0]?.awsRegion
+  });
   
-  // Process records sequentially to better handle errors
-  // In a production environment with high throughput, you might want to process in batches
+  let successCount = 0;
+  let failureCount = 0;
+  
   for (const record of event.Records) {
     try {
+      Logger.debug('HANDLER', `Processing record ${record.messageId}`);
       await processRecord(record);
+      successCount++;
     } catch (error) {
-      console.error(`[MONITOR] Failed to process record ${record.messageId}: ${error}`);
-      // In AWS Lambda, throwing an error will cause the entire batch to be retried
-      // For specific records that shouldn't be retried, we handle that in processRecord
+      failureCount++;
+      Logger.error('HANDLER', `Failed to process record ${record.messageId}`, error);
     }
   }
   
-  console.log(`[MONITOR] Processing complete. Metrics: ${JSON.stringify(metrics)}`);
+  const processingTime = Date.now() - handlerStart;
+  Logger.info('HANDLER', `Processing complete in ${processingTime}ms`, {
+    recordCount: event.Records.length,
+    successCount,
+    failureCount,
+    processingTime
+  });
+  
+  logMetrics('batch-completion');
 }
 
 export async function localProcessVoucherGift(messageBody: string): Promise<void> {
-  const mockRecord: SQSRecord = {
-    messageId: 'mock-message-id',
-    receiptHandle: 'mock-receipt-handle',
-    body: messageBody,
-    attributes: {
-      ApproximateReceiveCount: '1',
-      SentTimestamp: Date.now().toString(),
-      SenderId: 'mock-sender-id',
-      ApproximateFirstReceiveTimestamp: Date.now().toString()
-    },
-    messageAttributes: {},
-    md5OfBody: 'mock-md5',
-    eventSource: 'aws:sqs',
-    eventSourceARN: 'mock-arn',
-    awsRegion: 'us-east-1'
-  };
+  Logger.info('SIMULATOR', 'Simulating SQS message processing', {
+    bodyLength: messageBody.length,
+    timestamp: new Date().toISOString()
+  });
   
-  await processRecord(mockRecord);
+  try {
+    const timestamp = Date.now().toString();
+    const mockRecord: SQSRecord = {
+      messageId: `mock-msg-${Date.now()}`,
+      receiptHandle: `mock-receipt-${Date.now()}`,
+      body: messageBody,
+      attributes: {
+        ApproximateReceiveCount: '1',
+        SentTimestamp: timestamp,
+        SenderId: 'local-simulator',
+        ApproximateFirstReceiveTimestamp: timestamp
+      },
+      messageAttributes: {},
+      md5OfBody: 'mock-md5',
+      eventSource: 'local:sqs',
+      eventSourceARN: 'mock-arn:local',
+      awsRegion: 'local'
+    };
+    
+    Logger.debug('SIMULATOR', 'Created mock SQS record', {
+      messageId: mockRecord.messageId,
+      timestamp
+    });
+    
+    await processRecord(mockRecord);
+    
+    Logger.info('SIMULATOR', 'Successfully processed simulated message');
+  } catch (error) {
+    Logger.error('SIMULATOR', 'Error processing simulated message', error);
+    throw error;
+  }
 }
