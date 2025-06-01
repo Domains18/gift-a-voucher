@@ -3,14 +3,8 @@ import { VoucherGiftSchema, createVoucherGift, VoucherGiftMessage } from '../mod
 import { SQSService } from '../services/sqs.service';
 import { DynamoDBService } from '../services/dynamodb.service';
 
-/**
- * Handler for the gift voucher API endpoint
- * @param req Express request object
- * @param res Express response object
- */
 export async function giftVoucherHandler(req: Request, res: Response): Promise<void> {
   try {
-    // Validate the request body
     const result = VoucherGiftSchema.safeParse(req.body);
     
     if (!result.success) {
@@ -21,13 +15,10 @@ export async function giftVoucherHandler(req: Request, res: Response): Promise<v
       return;
     }
 
-    // Create a voucher gift record
     const voucherGift = createVoucherGift(result.data);
     
-    // Save the voucher gift to DynamoDB
     await DynamoDBService.saveVoucherGift(voucherGift);
     
-    // Prepare the message for SQS
     const message: VoucherGiftMessage = {
       voucherId: voucherGift.id,
       recipientEmail: voucherGift.recipientEmail,
@@ -36,10 +27,8 @@ export async function giftVoucherHandler(req: Request, res: Response): Promise<v
       message: voucherGift.message,
     };
     
-    // Send the message to SQS
     await SQSService.sendVoucherGiftMessage(message);
     
-    // Return success response
     res.status(200).json({
       success: true,
       data: {

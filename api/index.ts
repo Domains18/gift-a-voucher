@@ -10,26 +10,20 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Setup local AWS resources if in development mode
 if (process.env.NODE_ENV !== 'production') {
   setupLocalAwsResources()
     .then(() => console.log('Local AWS resources setup complete'))
     .catch(err => console.error('Failed to setup local AWS resources:', err));
 }
 
-// Middleware
 app.use(express.json());
 app.use(express.static('public'));
-
-// Health check endpoint
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok' });
 });
 
-// Gift voucher endpoint
 app.post('/api/vouchers/gift', giftVoucherHandler);
 
-// Simulate SQS message processing (for local development)
 app.post('/api/simulate/process-voucher', async (req, res) => {
   try {
     const messageBody = JSON.stringify(req.body);
@@ -41,7 +35,6 @@ app.post('/api/simulate/process-voucher', async (req, res) => {
   }
 });
 
-// Start the server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log('Available endpoints:');
