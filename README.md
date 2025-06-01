@@ -1,19 +1,16 @@
-# Gift a Voucher Feature
+# Gift a Voucher
 
-This project implements a "Gift a Voucher" feature for a digital marketplace. Users can gift vouchers to other users via email or wallet address.
+A feature for a digital marketplace that allows users to gift vouchers to recipients via email or wallet address. The system uses a queue-based architecture for reliable asynchronous processing with robust retry and error handling.
 
 ## Features
 
-- Gift vouchers to users via email or wallet address
-- Validate input data
-- Publish messages to AWS SQS queue
-- Process messages with a Lambda-style handler
-- Store gift records in DynamoDB
-
-## Tech Stack
-
-- Node.js with TypeScript
-- Express.js for the API
+- Gift vouchers via email or wallet address
+- Asynchronous processing with AWS SQS
+- Persistent storage with AWS DynamoDB
+- Retry handling and dead-letter queue (DLQ) logic
+- Detailed monitoring and metrics
+- React frontend with form validation
+- Comprehensive test suite using Vitest
 - AWS SDK for SQS and DynamoDB
 - Zod for validation
 - Serverless architecture (Lambda-style handlers)
