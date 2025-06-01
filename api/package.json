@@ -6,10 +6,6 @@
   "scripts": {
     "start": "ts-node api/index.ts",
     "dev": "nodemon --exec ts-node api/index.ts",
-    "frontend:install": "cd frontend && npm install",
-    "frontend:start": "cd frontend && npm start",
-    "frontend:build": "cd frontend && npm run build",
-    "dev:all": "concurrently \"npm run dev\" \"npm run frontend:start\"",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",

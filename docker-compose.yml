@@ -16,7 +16,7 @@ services:
       - AWS_ACCESS_KEY_ID=test
       - AWS_SECRET_ACCESS_KEY=test
     volumes:
-      - "./localstack-init:/docker-entrypoint-initaws.d"
+      - "./init-aws-resources.sh:/docker-entrypoint-initaws.d/init-aws-resources.sh"
       - "/var/run/docker.sock:/var/run/docker.sock"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:4566/health"]
