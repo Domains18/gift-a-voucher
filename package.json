@@ -1,39 +1,40 @@
 {
-  "name": "gift-a-voucher",
-  "version": "1.0.0",
-  "description": "Gift a Voucher feature for digital marketplace",
-  "scripts": {
-    "start": "npm run start:api",
-    "start:api": "cd api && npm run start",
-    "start:frontend": "cd frontend && npm run start",
-    "dev": "npm run dev:api",
-    "dev:api": "nodemon api/index.ts",
-    "dev:frontend": "cd frontend && npm run start",
-    "dev:all": "concurrently \"npm run dev:api\" \"npm run dev:frontend\"",
-    "test": "npm run test:api && npm run test:frontend",
-    "test:api": "cd api && npm run test",
-    "test:frontend": "cd frontend && npm run test",
-    "setup": "npm install && npm run setup:api && npm run setup:frontend",
-    "setup:api": "cd api && npm install",
-    "setup:frontend": "cd frontend && npm install",
-    "docker:up": "docker-compose up -d",
-    "docker:down": "docker-compose down",
-    "docker:logs": "docker-compose logs -f"
-  },
-  "keywords": [
-    "voucher",
-    "gift",
-    "marketplace",
-    "aws",
-    "sqs",
-    "dynamodb"
-  ],
-  "author": "",
-  "license": "ISC",
-  "devDependencies": {
-    "concurrently": "^8.2.0"
-  },
-  "dependencies": {
-    "nodemon": "^3.1.10"
-  }
+    "name": "gift-a-voucher",
+    "version": "1.0.0",
+    "description": "Gift a Voucher feature for digital marketplace",
+    "scripts": {
+        "start": "npm run start:api",
+        "start:api": "cd api && npm run start",
+        "start:frontend": "cd frontend && npm run start",
+        "dev": "npm run dev:api",
+        "dev:api": "nodemon api/index.ts",
+        "dev:frontend": "cd frontend && npm run start",
+        "dev:all": "concurrently \"npm run dev:api\" \"npm run dev:frontend\"",
+        "test": "npm run test:api && npm run test:frontend",
+        "test:api": "cd api && npm run test",
+        "test:frontend": "cd frontend && npm run test",
+        "setup": "npm install && npm run setup:api && npm run setup:frontend",
+        "setup:api": "cd api && npm install",
+        "setup:frontend": "cd frontend && npm install",
+        "docker:up": "docker-compose up -d",
+        "docker:down": "docker-compose down",
+        "docker:logs": "docker-compose logs -f"
+    },
+    "keywords": [
+        "voucher",
+        "gift",
+        "marketplace",
+        "aws",
+        "sqs",
+        "dynamodb"
+    ],
+    "author": "",
+    "license": "ISC",
+    "devDependencies": {
+        "concurrently": "^8.2.0"
+    },
+    "dependencies": {
+        "nodemon": "^3.1.10",
+        "prettier": "^3.5.3"
+    }
 }

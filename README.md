@@ -16,6 +16,7 @@ A feature for a digital marketplace that allows users to gift vouchers to recipi
 ## Technologies
 
 ### Backend
+
 - Node.js with TypeScript
 - Express.js for API endpoints
 - AWS SDK v3 for SQS and DynamoDB
@@ -23,8 +24,8 @@ A feature for a digital marketplace that allows users to gift vouchers to recipi
 - Vitest for unit testing
 - Serverless architecture (Lambda-style handlers)
 
-
 ### Frontend
+
 - React with TypeScript
 - Bootstrap for UI components
 - Axios for API requests
@@ -32,6 +33,7 @@ A feature for a digital marketplace that allows users to gift vouchers to recipi
 - Vitest for unit testing
 
 ### Development & DevOps
+
 - Docker and Docker Compose for local AWS emulation
 - LocalStack for AWS services emulation
 - Concurrently for running multiple services
@@ -84,6 +86,7 @@ The easiest way to set up and run the project is using the provided start script
 ```
 
 This script will:
+
 1. Install all dependencies for both backend and frontend
 2. Start LocalStack using Docker Compose
 3. Initialize AWS resources (SQS queue and DynamoDB table)
@@ -92,73 +95,80 @@ This script will:
 ### Option 2: Manual Setup
 
 1. Install root dependencies:
-   ```bash
-   npm install
-   ```
+
+    ```bash
+    npm install
+    ```
 
 2. Install API and frontend dependencies:
-   ```bash
-   cd api && npm install
-   cd ../frontend && npm install
-   cd ..
-   ```
+
+    ```bash
+    cd api && npm install
+    cd ../frontend && npm install
+    cd ..
+    ```
 
 3. Start LocalStack using Docker Compose:
-   ```bash
-   npm run docker:up
-   ```
+
+    ```bash
+    npm run docker:up
+    ```
 
 4. Initialize AWS resources:
-   ```bash
-   ./init-aws-resources.sh
-   ```
+
+    ```bash
+    ./init-aws-resources.sh
+    ```
 
 5. Start the backend and frontend:
-   ```bash
-   # Start both concurrently
-   npm run dev:all
-   
-   # Or start them individually
-   npm run dev:api     # Backend only
-   npm run dev:frontend # Frontend only
-   ```
+
+    ```bash
+    # Start both concurrently
+    npm run dev:all
+
+    # Or start them individually
+    npm run dev:api     # Backend only
+    npm run dev:frontend # Frontend only
+    ```
 
 ## API Endpoints
 
 ### Gift a Voucher
+
 - **URL**: `/api/vouchers/gift`
 - **Method**: `POST`
 - **Request Body**:
-  ```json
-  {
-    "recipientEmail": "recipient@example.com", // Optional if walletAddress is provided
-    "walletAddress": "0x123...", // Optional if recipientEmail is provided
-    "amount": 100,
-    "message": "Happy Birthday!" // Optional
-  }
-  ```
-- **Response**:
-  ```json
-  {
-    "success": true,
-    "data": {
-      "id": "voucher-uuid",
-      "status": "PENDING"
+    ```json
+    {
+        "recipientEmail": "recipient@example.com", // Optional if walletAddress is provided
+        "walletAddress": "0x123...", // Optional if recipientEmail is provided
+        "amount": 100,
+        "message": "Happy Birthday!" // Optional
     }
-  }
-  ```
+    ```
+- **Response**:
+    ```json
+    {
+        "success": true,
+        "data": {
+            "id": "voucher-uuid",
+            "status": "PENDING"
+        }
+    }
+    ```
 
 ### Simulate Processing a Voucher (for local development)
+
 - **URL**: `/api/simulate/process-voucher`
 - **Method**: `POST`
 - **Request Body**: Same as the voucher gift message
 - **Response**:
-  ```json
-  {
-    "success": true,
-    "message": "Voucher processed successfully"
-  }
-  ```
+    ```json
+    {
+        "success": true,
+        "message": "Voucher processed successfully"
+    }
+    ```
 
 ## Testing
 
@@ -193,6 +203,7 @@ npm run test:coverage
 ### Backend Tests
 
 Backend tests cover:
+
 - DynamoDB service operations (save, get, update voucher records)
 - SQS service message sending
 - Voucher processing logic including retry and DLQ handling
@@ -201,6 +212,7 @@ Backend tests cover:
 ### Frontend Tests
 
 Frontend tests cover:
+
 - React components (VoucherForm)
 - API service module
 - Form validation and submission
@@ -209,6 +221,7 @@ Frontend tests cover:
 ## Error Handling
 
 The API includes validation and error handling for:
+
 - Missing required fields
 - Invalid email format
 - Non-positive amount values
@@ -219,6 +232,7 @@ The API includes validation and error handling for:
 ## Monitoring
 
 The application includes monitoring capabilities:
+
 - Structured logging with [MONITOR] and [METRICS] prefixes
 - Tracking of processed, failed, retried, and DLQ messages
 - Processing time measurements

@@ -164,19 +164,19 @@ By implementing these architectural, monitoring, and security measures, we can c
 
 1. **Impact**
 
--   Helped a production app migrate seamlessly to Supabase with minimal downtime
--   Abstracted migration into a reusable tool for future use
--   Added logging, retry mechanisms, and transformation mapping for schema mismatches
+- Helped a production app migrate seamlessly to Supabase with minimal downtime
+- Abstracted migration into a reusable tool for future use
+- Added logging, retry mechanisms, and transformation mapping for schema mismatches
 
 2. **Ownership**
 
--   Reading from GCP services (Firestore or GCS)
--   Mapping data into Postgres-friendly schema
--   Handling edge cases like type mismatches, nulls, etc.
--   Writing robust async-safe Python code with error handling
+- Reading from GCP services (Firestore or GCS)
+- Mapping data into Postgres-friendly schema
+- Handling edge cases like type mismatches, nulls, etc.
+- Writing robust async-safe Python code with error handling
 
 3. **How I Measured Success**
 
--   Successful one-time data migration without corruption
--   All records mapped correctly with type integrity
--   Validated Supabase was usable immediately after
+- Successful one-time data migration without corruption
+- All records mapped correctly with type integrity
+- Validated Supabase was usable immediately after

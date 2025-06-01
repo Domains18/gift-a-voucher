@@ -14,7 +14,8 @@ body {
     padding: 1.5rem;
 }
 
-.form-control:focus, .form-select:focus {
+.form-control:focus,
+.form-select:focus {
     border-color: #2575fc;
     box-shadow: 0 0 0 0.25rem rgba(37, 117, 252, 0.25);
 }

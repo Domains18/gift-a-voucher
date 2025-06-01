@@ -1,39 +1,38 @@
-
 services:
-  localstack:
-    image: localstack/localstack:latest
-    container_name: gift-a-voucher-localstack
-    ports:
-      - "4566:4566"
-      - "4571:4571"
-    environment:
-      - SERVICES=sqs,dynamodb,s3
-      - DEBUG=1
-      - DATA_DIR=/tmp/localstack/data
-      - DOCKER_HOST=unix:///var/run/docker.sock
-      - AWS_DEFAULT_REGION=us-east-1
-      - AWS_ACCESS_KEY_ID=test
-      - AWS_SECRET_ACCESS_KEY=test
-    volumes:
-      - "./init-aws-resources.sh:/docker-entrypoint-initaws.d/init-aws-resources.sh"
-      - "/var/run/docker.sock:/var/run/docker.sock"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
+    localstack:
+        image: localstack/localstack:latest
+        container_name: gift-a-voucher-localstack
+        ports:
+            - '4566:4566'
+            - '4571:4571'
+        environment:
+            - SERVICES=sqs,dynamodb,s3
+            - DEBUG=1
+            - DATA_DIR=/tmp/localstack/data
+            - DOCKER_HOST=unix:///var/run/docker.sock
+            - AWS_DEFAULT_REGION=us-east-1
+            - AWS_ACCESS_KEY_ID=test
+            - AWS_SECRET_ACCESS_KEY=test
+        volumes:
+            - './init-aws-resources.sh:/docker-entrypoint-initaws.d/init-aws-resources.sh'
+            - '/var/run/docker.sock:/var/run/docker.sock'
+        healthcheck:
+            test: ['CMD', 'curl', '-f', 'http://localhost:4566/_localstack/health']
+            interval: 10s
+            timeout: 5s
+            retries: 3
 
-  # api:
-  #   build: .
-  #   ports:
-  #     - "8080:8080"
-  #   environment:
-  #     - NODE_ENV=development
-  #     - PORT=8080
-  #     - GIFT_VOUCHER_QUEUE_URL=http://localstack:4566/000000000000/gift-voucher-queue
-  #     - VOUCHERS_TABLE_NAME=Vouchers
-  #   depends_on:
-  #     - localstack
-  #   volumes:
-  #     - ./:/app
-  #     - /app/node_modules
+    # api:
+    #   build: .
+    #   ports:
+    #     - "8080:8080"
+    #   environment:
+    #     - NODE_ENV=development
+    #     - PORT=8080
+    #     - GIFT_VOUCHER_QUEUE_URL=http://localstack:4566/000000000000/gift-voucher-queue
+    #     - VOUCHERS_TABLE_NAME=Vouchers
+    #   depends_on:
+    #     - localstack
+    #   volumes:
+    #     - ./:/app
+    #     - /app/node_modules
