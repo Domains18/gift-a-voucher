@@ -41,10 +41,12 @@ gift-a-voucher/
    pnpm install
    ```
 
-2. For local development, you'll need to run a local AWS environment like LocalStack:
+2. For local development, use Docker Compose to start LocalStack (includes DynamoDB and SQS):
    ```
-   docker run -d -p 4566:4566 -p 4571:4571 localstack/localstack
+   docker-compose up -d
    ```
+   
+   This will automatically set up the required AWS resources (SQS queue and DynamoDB table).
 
 3. Start the development server:
    ```
