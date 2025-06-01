@@ -1,8 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import axios from 'axios';
-import { giftVoucher, simulateProcessVoucher } from '../../services/api';
+import { giftVoucher, simulateProcessVoucher, API_BASE_URL } from '../../services/api';
 
-// Mock axios
 vi.mock('axios');
 
 describe('API Service', () => {
@@ -66,13 +65,18 @@ describe('API Service', () => {
       
       (axios.post as any).mockResolvedValueOnce(mockResponse);
       
-      const voucherId = 'test-voucher-id';
+      // Create a valid VoucherGiftRequest object
+      const voucherRequest = {
+        recipientEmail: 'test@example.com',
+        amount: 100,
+        message: 'Test message'
+      };
 
       // Act
-      const result = await simulateProcessVoucher(voucherId);
+      const result = await simulateProcessVoucher(voucherRequest);
 
       // Assert
-      expect(axios.post).toHaveBeenCalledWith(`/api/vouchers/${voucherId}/process`);
+      expect(axios.post).toHaveBeenCalledWith(`${API_BASE_URL}/simulate/process-voucher`, voucherRequest);
       expect(result).toEqual(mockResponse.data);
     });
 
@@ -81,10 +85,14 @@ describe('API Service', () => {
       const errorMessage = 'Server Error';
       (axios.post as any).mockRejectedValueOnce(new Error(errorMessage));
       
-      const voucherId = 'test-voucher-id';
+      // Create a valid VoucherGiftRequest object
+      const voucherRequest = {
+        walletAddress: '0x1234567890abcdef',
+        amount: 50
+      };
 
       // Act & Assert
-      await expect(simulateProcessVoucher(voucherId)).rejects.toThrow(errorMessage);
+      await expect(simulateProcessVoucher(voucherRequest)).rejects.toThrow(errorMessage);
     });
   });
 });

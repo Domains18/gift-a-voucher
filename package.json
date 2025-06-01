@@ -7,7 +7,7 @@
     "start:api": "cd api && npm run start",
     "start:frontend": "cd frontend && npm run start",
     "dev": "npm run dev:api",
-    "dev:api": "cd api && npm run dev",
+    "dev:api": "nodemon api/index.ts",
     "dev:frontend": "cd frontend && npm run start",
     "dev:all": "concurrently \"npm run dev:api\" \"npm run dev:frontend\"",
     "test": "npm run test:api && npm run test:frontend",
@@ -32,5 +32,8 @@
   "license": "ISC",
   "devDependencies": {
     "concurrently": "^8.2.0"
+  },
+  "dependencies": {
+    "nodemon": "^3.1.10"
   }
 }

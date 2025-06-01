@@ -3,12 +3,18 @@ import dotenv from 'dotenv';
 import { giftVoucherHandler } from './handlers/giftVoucher';
 import { localProcessVoucherGift } from './handlers/processVoucherGift';
 import { setupLocalAwsResources } from './utils/localAwsSetup';
+import cors from 'cors';
 
 // Load environment variables
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+app.use(cors({
+  origin: '*',
+  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+  allowedHeaders: 'Content-Type,Authorization',
+}));
 
 if (process.env.NODE_ENV !== 'production') {
   setupLocalAwsResources()

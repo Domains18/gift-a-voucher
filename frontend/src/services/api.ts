@@ -1,15 +1,10 @@
 import axios from 'axios';
 
-const API_BASE_URL = '/api';
+export const API_BASE_URL = 'http://localhost:8080/api';
 
 interface ApiResponse<T> {
   success: boolean;
   data: T;
-}
-
-interface ErrorResponse {
-  success: boolean;
-  error: string | Record<string, any>;
 }
 
 interface VoucherResponse {
@@ -27,6 +22,8 @@ export interface VoucherGiftRequest {
 export const giftVoucher = async (data: VoucherGiftRequest): Promise<ApiResponse<VoucherResponse>> => {
   try {
     const response = await axios.post<ApiResponse<VoucherResponse>>(`${API_BASE_URL}/vouchers/gift`, data);
+    // console.log(API_BASE_URL);
+    console.log(response.data);
     return response.data;
   } catch (error: any) {
     if (error.response && error.response.data) {
