@@ -1,0 +1,7 @@
+{
+    "watch": ["api"],
+    "ext": ".ts", 
+    "ignore": ["node_modules/**/*", "dist/**/*"],
+    "delay": 1000,
+    "exec": "npx ts-node api/index.ts"
+}
