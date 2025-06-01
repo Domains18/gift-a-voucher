@@ -69,11 +69,12 @@ In a production environment, we would enhance our monitoring with:
 1. **Dashboards**: Real-time dashboards showing queue depths, processing rates, error rates, and DLQ counts.
 
 2. **Alerting**: Automated alerts for anomalies such as:
-   - Unusual queue depth or growth rate
-   - High error rates
-   - Messages exceeding age thresholds
-   - DLQ receiving messages
-   - Processing service health issues
+
+    - Unusual queue depth or growth rate
+    - High error rates
+    - Messages exceeding age thresholds
+    - DLQ receiving messages
+    - Processing service health issues
 
 3. **Tracing**: Distributed tracing to follow a voucher gift request through the entire system, from API to queue to processing and delivery.
 
@@ -102,9 +103,10 @@ In a production environment, we would enhance our monitoring with:
 2. **Daily/Weekly Quotas**: Restrict the total value or number of vouchers a user can gift within specific time periods.
 
 3. **Fraud Detection Algorithms**: Implement algorithms to detect unusual patterns that may indicate fraudulent activity, such as:
-   - Sudden increases in gifting frequency or amounts
-   - Multiple gifts to the same recipient from different senders
-   - Gifts from newly created accounts
+
+    - Sudden increases in gifting frequency or amounts
+    - Multiple gifts to the same recipient from different senders
+    - Gifts from newly created accounts
 
 4. **Recipient Verification**: For high-value vouchers, consider implementing additional verification steps for recipients, such as email verification or two-factor authentication.
 
@@ -125,3 +127,56 @@ In a production environment, we would enhance our monitoring with:
 5. **Secrets Management**: Use a secure secrets management solution for storing API keys, database credentials, and other sensitive configuration.
 
 By implementing these architectural, monitoring, and security measures, we can create a voucher gifting system that is reliable, observable, and secure, providing a positive experience for users while protecting the platform from abuse and fraud.
+
+## 4. Ownership
+
+> _Focus: system reliability, performance, code quality, and direct technical contributions._
+
+1. **Enhanced Observability via Structured Logging in NestJS**
+
+    - Designed and implemented a custom logging middleware featuring JSON formatting, `Request-ID` tracing, and log rotation.
+    - Reduced debugging time by \~40% and improved traceability across services, boosting platform reliability.
+
+2. **Optimized Infrastructure by Spearheading App Engine → Cloud Run Migration**
+
+    - Benchmarked cold starts, containerized Node.js services, and implemented rollout pipelines.
+    - Achieved a \~30% cost reduction and 50% improvement in performance during load tests.
+
+3. **Implemented Role-Aware Messaging Layer (Newsletter System)**
+
+    - Built a flexible newsletter module with Prisma to support targeted messages by role (teachers, parents, class-based).
+    - Reduced noise and increased relevance of communication in the school management platform.
+
+4. **Improved Frontend-Backend Data Flow via Redux Integration**
+
+    - Refactored PWA frontend (Next.js) with Redux for class, stream, and student operations.
+    - Enabled better separation of concerns and testable UI logic across frontend modules.
+
+5. **Upgraded Authentication Logic for Scalability**
+
+    - Refactored monolithic auth checks into modular NestJS guards/services, supporting dynamic user roles and policies.
+    - Increased maintainability and security posture while improving onboarding for future roles.
+
+### 🛠️ **Built a Python GCP-to-Supabase Data Migration Tool**
+
+> _Focus: system reliability, performance, code quality, and direct technical contributions._
+> Built a Python CLI tool to migrate data from Google Cloud Platform (GCP) Firestore or GCS to Supabase Postgres. The tool included transformation logic, batch inserts, and retry handling.
+
+1. **Impact**
+
+-   Helped a production app migrate seamlessly to Supabase with minimal downtime
+-   Abstracted migration into a reusable tool for future use
+-   Added logging, retry mechanisms, and transformation mapping for schema mismatches
+
+2. **Ownership**
+
+-   Reading from GCP services (Firestore or GCS)
+-   Mapping data into Postgres-friendly schema
+-   Handling edge cases like type mismatches, nulls, etc.
+-   Writing robust async-safe Python code with error handling
+
+3. **How I Measured Success**
+
+-   Successful one-time data migration without corruption
+-   All records mapped correctly with type integrity
+-   Validated Supabase was usable immediately after

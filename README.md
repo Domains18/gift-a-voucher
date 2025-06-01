@@ -11,6 +11,7 @@ A feature for a digital marketplace that allows users to gift vouchers to recipi
 - Detailed monitoring and metrics
 - React frontend with form validation
 - Comprehensive test suite using Vitest
+- Comprehensive Logging on the backend
 
 ## Technologies
 
@@ -21,6 +22,7 @@ A feature for a digital marketplace that allows users to gift vouchers to recipi
 - Zod for input validation
 - Vitest for unit testing
 - Serverless architecture (Lambda-style handlers)
+
 
 ### Frontend
 - React with TypeScript
