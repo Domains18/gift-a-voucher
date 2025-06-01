@@ -16,7 +16,7 @@ fi
 
 # Start LocalStack
 echo "Starting LocalStack..."
-docker-compose up -d
+docker compose up -d
 
 # Wait for LocalStack to be ready
 echo "Waiting for LocalStack to be ready..."
