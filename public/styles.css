@@ -1,0 +1,73 @@
+body {
+    background-color: #f8f9fa;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.card {
+    border-radius: 15px;
+    overflow: hidden;
+    border: none;
+}
+
+.card-header {
+    background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+    padding: 1.5rem;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #2575fc;
+    box-shadow: 0 0 0 0.25rem rgba(37, 117, 252, 0.25);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+    border: none;
+    padding: 0.75rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 20px rgba(37, 117, 252, 0.3);
+}
+
+.form-label {
+    font-weight: 600;
+    color: #495057;
+}
+
+.input-group-text {
+    background-color: #2575fc;
+    color: white;
+    border: none;
+}
+
+textarea {
+    resize: none;
+}
+
+.modal-header.bg-success {
+    background: linear-gradient(135deg, #11cb6a 0%, #25fc94 100%);
+}
+
+.modal-header.bg-danger {
+    background: linear-gradient(135deg, #cb1111 0%, #fc2525 100%);
+}
+
+/* Animation for success */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translate3d(0, 40px, 0);
+    }
+    to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+    }
+}
+
+.fadeInUp {
+    animation-name: fadeInUp;
+    animation-duration: 0.5s;
+}
