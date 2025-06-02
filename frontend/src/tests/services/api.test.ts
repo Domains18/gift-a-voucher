@@ -28,13 +28,14 @@ describe('API Service', () => {
                 recipientEmail: 'test@example.com',
                 amount: 100,
                 message: 'Test message',
+                idempotencyKey: 'test-key-1',
             };
 
             // Act
             const result = await giftVoucher(voucherData);
 
             // Assert
-            expect(axios.post).toHaveBeenCalledWith('/api/vouchers/gift', voucherData);
+            expect(axios.post).toHaveBeenCalledWith(`${API_BASE_URL}/vouchers/gift`, voucherData);
             expect(result).toEqual(mockResponse.data);
         });
 
@@ -46,10 +47,11 @@ describe('API Service', () => {
             const voucherData = {
                 walletAddress: '0x1234567890abcdef',
                 amount: 50,
+                idempotencyKey: 'test-key-2',
             };
 
             // Act & Assert
-            await expect(giftVoucher(voucherData)).rejects.toThrow(errorMessage);
+            await expect(giftVoucher(voucherData)).rejects.toThrow('Network error. Please try again.');
         });
     });
 
@@ -70,6 +72,7 @@ describe('API Service', () => {
                 recipientEmail: 'test@example.com',
                 amount: 100,
                 message: 'Test message',
+                idempotencyKey: 'test-key-3',
             };
 
             // Act
@@ -89,10 +92,11 @@ describe('API Service', () => {
             const voucherRequest = {
                 walletAddress: '0x1234567890abcdef',
                 amount: 50,
+                idempotencyKey: 'test-key-4',
             };
 
             // Act & Assert
-            await expect(simulateProcessVoucher(voucherRequest)).rejects.toThrow(errorMessage);
+            await expect(simulateProcessVoucher(voucherRequest)).rejects.toThrow('Failed to simulate voucher processing');
         });
     });
 });

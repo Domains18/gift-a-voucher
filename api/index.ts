@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import { giftVoucherHandler } from './handlers/giftVoucher';
 import { localProcessVoucherGift } from './handlers/processVoucherGift';
 import { setupLocalAwsResources } from './utils/localAwsSetup';
+import { rateLimiter } from './middleware/rateLimiter';
 import cors from 'cors';
 import { Logger } from './utils/logger';
 
@@ -84,8 +85,8 @@ app.get('/health', (req, res) => {
     });
 });
 
-// Gift voucher endpoint
-app.post('/api/vouchers/gift', (req, res) => {
+// Gift voucher endpoint with rate limiting
+app.post('/api/vouchers/gift', rateLimiter, (req, res) => {
     Logger.info('API', 'Gift voucher request received');
     return giftVoucherHandler(req, res);
 });

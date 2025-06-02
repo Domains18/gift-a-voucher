@@ -13,6 +13,9 @@
         "test": "npm run test:api && npm run test:frontend",
         "test:api": "cd api && npm run test",
         "test:frontend": "cd frontend && npm run test",
+        "test:coverage": "npm run test:coverage:api && npm run test:coverage:frontend",
+        "test:coverage:api": "cd api && npm run test:coverage",
+        "test:coverage:frontend": "cd frontend && npm run test:coverage",
         "setup": "npm install && npm run setup:api && npm run setup:frontend",
         "setup:api": "cd api && npm install",
         "setup:frontend": "cd frontend && npm install",
@@ -34,6 +37,7 @@
         "concurrently": "^8.2.0"
     },
     "dependencies": {
+        "jest": "^29.7.0",
         "nodemon": "^3.1.10",
         "prettier": "^3.5.3"
     }

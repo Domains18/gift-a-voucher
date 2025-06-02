@@ -92,22 +92,29 @@ describe('DynamoDBService', () => {
             // Arrange
             const mockId = 'test-id';
             const mockStatus = 'SENT';
+            const mockVoucher = {
+                id: mockId,
+                status: 'PENDING',
+                recipientEmail: 'test@example.com',
+                amount: 100,
+                createdAt: new Date().toISOString()
+            };
 
-            // Mock successful response
+            // First mock the getVoucherGift call to return the existing voucher
             (dynamoDbDocClient.send as any).mockResolvedValueOnce({
-                Attributes: {
-                    id: mockId,
-                    status: mockStatus,
-                },
+                Item: mockVoucher
             });
+
+            // Then mock the PutCommand call for the update
+            (dynamoDbDocClient.send as any).mockResolvedValueOnce({});
 
             // Act
             const result = await DynamoDBService.updateVoucherStatus(mockId, mockStatus);
 
             // Assert
-            expect(dynamoDbDocClient.send).toHaveBeenCalledTimes(1);
+            expect(dynamoDbDocClient.send).toHaveBeenCalledTimes(2); // One for get, one for put
             expect(result).toEqual({
-                id: mockId,
+                ...mockVoucher,
                 status: mockStatus,
             });
         });

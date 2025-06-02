@@ -2,6 +2,12 @@
 
 echo "Setting up Gift a Voucher project..."
 
+# check if awslocal is installed
+if ! command -v awslocal &> /dev/null; then
+    echo "awslocal could not be found, please install it first"
+    exit 1
+fi
+
 # Install dependencies if needed
 if [ ! -d "node_modules" ]; then
   echo "Installing root dependencies..."

@@ -17,6 +17,8 @@ export interface VoucherGiftRequest {
     walletAddress?: string;
     amount: number;
     message?: string;
+    idempotencyKey: string;
+    confirmHighValue?: boolean;
 }
 
 export const giftVoucher = async (data: VoucherGiftRequest): Promise<ApiResponse<VoucherResponse>> => {

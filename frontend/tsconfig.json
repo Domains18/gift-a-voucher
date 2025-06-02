@@ -1,7 +1,7 @@
 {
     "compilerOptions": {
         "target": "es5",
-        "lib": ["dom", "dom.iterable", "esnext"],
+        "lib": ["dom", "dom.iterable", "es6"],
         "allowJs": true,
         "skipLibCheck": true,
         "esModuleInterop": true,
@@ -15,7 +15,15 @@
         "isolatedModules": true,
         "noEmit": true,
         "jsx": "react-jsx",
-        "baseUrl": "src"
+        "baseUrl": "src",
+        "paths": {
+            "@/*": ["*"],
+            "@/components/*": ["components/*"],
+            "@/services/*": ["services/*"],
+            "@/tests/*": ["tests/*"]
+        },
+        "types": ["vitest/globals"]
     },
-    "include": ["src"]
+    "include": ["src/**/*", "src/**/*.tsx", "src/**/*.ts", "src/tests/**/*"],
+    "exclude": ["node_modules", "build", "dist"]
 }

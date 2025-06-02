@@ -4,6 +4,111 @@ import { VoucherGift } from '../models/voucher';
 import { Logger } from '../utils/logger';
 
 export class DynamoDBService {
+    /**
+     * Generic method to get an item from any DynamoDB table
+     * @param tableName The DynamoDB table name
+     * @param key The key to look up
+     * @returns The item if found, null otherwise
+     */
+    static async getItem<T>(tableName: string, key: Record<string, any>): Promise<T | null> {
+        const startTime = Date.now();
+        Logger.info('DYNAMODB', `Getting item from ${tableName}`, {
+            operation: 'getItem',
+            tableName,
+            key,
+        });
+
+        try {
+            const command = new GetCommand({
+                TableName: tableName,
+                Key: key,
+            });
+
+            const response = await dynamoDbDocClient.send(command);
+            const duration = Date.now() - startTime;
+
+            if (response.Item) {
+                Logger.info('DYNAMODB', `Successfully retrieved item from ${tableName} in ${duration}ms`, {
+                    operation: 'getItem',
+                    tableName,
+                    duration,
+                    found: true,
+                });
+                return response.Item as T;
+            } else {
+                Logger.info('DYNAMODB', `Item not found in ${tableName} (${duration}ms)`, {
+                    operation: 'getItem',
+                    tableName,
+                    duration,
+                    found: false,
+                });
+                return null;
+            }
+        } catch (error) {
+            const duration = Date.now() - startTime;
+            Logger.error('DYNAMODB', `Error getting item from ${tableName} (${duration}ms)`, error);
+
+            if (error instanceof Error) {
+                Logger.debug('ERROR_DETAILS', 'DynamoDB error details', {
+                    operation: 'getItem',
+                    tableName,
+                    errorName: error.name,
+                    errorMessage: error.message,
+                    duration,
+                });
+            }
+
+            return null; // Return null instead of throwing to make the function more resilient
+        }
+    }
+
+    /**
+     * Generic method to put an item into any DynamoDB table
+     * @param tableName The DynamoDB table name
+     * @param item The item to put
+     * @returns The item that was put
+     */
+    static async putItem<T>(tableName: string, item: T): Promise<T> {
+        const startTime = Date.now();
+        Logger.info('DYNAMODB', `Putting item into ${tableName}`, {
+            operation: 'putItem',
+            tableName,
+        });
+
+        try {
+            const command = new PutCommand({
+                TableName: tableName,
+                Item: item,
+            });
+
+            const result = await dynamoDbDocClient.send(command);
+            const duration = Date.now() - startTime;
+
+            Logger.info('DYNAMODB', `Successfully put item into ${tableName} in ${duration}ms`, {
+                operation: 'putItem',
+                tableName,
+                duration,
+                consumedCapacity: result.ConsumedCapacity,
+            });
+
+            return item;
+        } catch (error) {
+            const duration = Date.now() - startTime;
+            Logger.error('DYNAMODB', `Error putting item into ${tableName} (${duration}ms)`, error);
+
+            if (error instanceof Error) {
+                Logger.debug('ERROR_DETAILS', 'DynamoDB error details', {
+                    operation: 'putItem',
+                    tableName,
+                    errorName: error.name,
+                    errorMessage: error.message,
+                    duration,
+                });
+            }
+
+            throw new Error(`Failed to put item into ${tableName}`);
+        }
+    }
     static async saveVoucherGift(voucher: VoucherGift): Promise<VoucherGift> {
         const startTime = Date.now();
         Logger.info('DYNAMODB', `Saving voucher to DynamoDB: ${voucher.id}`, {

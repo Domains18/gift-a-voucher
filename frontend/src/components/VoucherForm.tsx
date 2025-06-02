@@ -1,80 +1,59 @@
-import React, { useState, FormEvent } from 'react';
-import { Card, Form, Button, InputGroup, Modal } from 'react-bootstrap';
-import { giftVoucher, VoucherGiftRequest } from '../services/api';
+'use client';
+
+import type React from 'react';
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { giftVoucher, type VoucherGiftRequest } from '../services/api';
+import { v4 as uuidv4 } from 'uuid';
+import './VoucherForm.css';
 
 interface FormData {
     recipientType: 'email' | 'wallet';
-    recipientEmail: string;
-    walletAddress: string;
-    amount: string;
-    message: string;
-}
-
-interface ValidationErrors {
     recipientEmail?: string;
     walletAddress?: string;
-    amount?: string;
+    amount: number;
+    message?: string;
 }
 
-const VoucherForm: React.FC = () => {
-    const [formData, setFormData] = useState<FormData>({
-        recipientType: 'email',
-        recipientEmail: '',
-        walletAddress: '',
-        amount: '',
-        message: '',
-    });
+// Constants for amount limits
+const HIGH_VALUE_THRESHOLD = 1000; // $1,000
 
-    const [errors, setErrors] = useState<ValidationErrors>({});
-    const [isSubmitting, setIsSubmitting] = useState(false);
+const VoucherForm: React.FC = () => {
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [showErrorModal, setShowErrorModal] = useState(false);
+    const [showHighValueConfirmModal, setShowHighValueConfirmModal] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
     const [voucherId, setVoucherId] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [pendingSubmission, setPendingSubmission] = useState<VoucherGiftRequest | null>(null);
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
+    // Add manual validation state for tests
+    const [validationErrors, setValidationErrors] = useState<{
+        email?: string;
+        wallet?: string;
+        amount?: string;
+    }>({});
 
-        // Clear errors when user types
-        if (errors[name as keyof ValidationErrors]) {
-            setErrors(prev => ({ ...prev, [name]: undefined }));
-        }
-    };
+    const {
+        register,
+        handleSubmit,
+        watch,
+        reset,
+        formState: { errors },
+    } = useForm<FormData>({
+        defaultValues: {
+            recipientType: 'email',
+            recipientEmail: '',
+            walletAddress: '',
+            amount: 0,
+            message: '',
+        },
+        mode: 'onSubmit', // Validate on submit
+    });
 
-    const handleRecipientTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const value = e.target.value as 'email' | 'wallet';
-        setFormData(prev => ({
-            ...prev,
-            recipientType: value,
-            recipientEmail: value === 'email' ? prev.recipientEmail : '',
-            walletAddress: value === 'wallet' ? prev.walletAddress : '',
-        }));
-    };
-
-    const validateForm = (): boolean => {
-        const newErrors: ValidationErrors = {};
-        let isValid = true;
-
-        if (formData.recipientType === 'email' && !validateEmail(formData.recipientEmail)) {
-            newErrors.recipientEmail = 'Please enter a valid email address';
-            isValid = false;
-        }
-
-        if (formData.recipientType === 'wallet' && !validateWalletAddress(formData.walletAddress)) {
-            newErrors.walletAddress = 'Please enter a valid wallet address';
-            isValid = false;
-        }
-
-        const amount = parseFloat(formData.amount);
-        if (isNaN(amount) || amount < 1) {
-            newErrors.amount = 'Please enter a valid amount (minimum $1)';
-            isValid = false;
-        }
-
-        setErrors(newErrors);
-        return isValid;
-    };
+    const recipientType = watch('recipientType');
+    const amount = watch('amount');
+    const isHighValue = amount >= HIGH_VALUE_THRESHOLD;
 
     const validateEmail = (email: string): boolean => {
         const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -85,185 +64,305 @@ const VoucherForm: React.FC = () => {
         return address.trim().length >= 10;
     };
 
-    const handleSubmit = async (e: FormEvent) => {
-        e.preventDefault();
+    const preparePayload = (data: FormData, confirmHighValue = false): VoucherGiftRequest => {
+        const payload: VoucherGiftRequest = {
+            amount: data.amount,
+            idempotencyKey: uuidv4(),
+        };
 
-        if (!validateForm()) {
+        if (data.recipientType === 'email' && data.recipientEmail) {
+            payload.recipientEmail = data.recipientEmail;
+        } else if (data.recipientType === 'wallet' && data.walletAddress) {
+            payload.walletAddress = data.walletAddress;
+        }
+
+        if (data.message?.trim()) {
+            payload.message = data.message;
+        }
+
+        if (isHighValue) {
+            payload.confirmHighValue = confirmHighValue;
+        }
+
+        return payload;
+    };
+
+    const onSubmit = async (data: FormData) => {
+        // Clear previous validation errors
+        setValidationErrors({});
+
+        let hasErrors = false;
+
+        // Validate recipient
+        if (data.recipientType === 'email') {
+            if (!data.recipientEmail || !validateEmail(data.recipientEmail)) {
+                setValidationErrors(prev => ({ ...prev, email: 'Please enter a valid email address' }));
+                hasErrors = true;
+            }
+        } else {
+            if (!data.walletAddress || !validateWalletAddress(data.walletAddress)) {
+                setValidationErrors(prev => ({ ...prev, wallet: 'Please enter a valid wallet address' }));
+                hasErrors = true;
+            }
+        }
+
+        // Validate amount
+        if (!data.amount || data.amount < 1) {
+            setValidationErrors(prev => ({ ...prev, amount: 'Please enter a valid amount (minimum $1)' }));
+            hasErrors = true;
+        }
+
+        if (hasErrors) {
             return;
         }
 
+        // Check if this is a high-value voucher that requires confirmation
+        if (isHighValue) {
+            setPendingSubmission(preparePayload(data, false));
+            setShowHighValueConfirmModal(true);
+            return;
+        }
+
+        await submitVoucher(data);
+    };
+
+    const handleHighValueConfirm = async () => {
+        setShowHighValueConfirmModal(false);
+        if (pendingSubmission) {
+            const confirmedPayload = { ...pendingSubmission, confirmHighValue: true };
+            await submitVoucherWithPayload(confirmedPayload);
+        }
+    };
+
+    const submitVoucher = async (data: FormData) => {
+        const payload = preparePayload(data, true);
+        await submitVoucherWithPayload(payload);
+    };
+
+    const submitVoucherWithPayload = async (payload: VoucherGiftRequest) => {
         setIsSubmitting(true);
 
         try {
-            const payload: VoucherGiftRequest = {
-                amount: parseFloat(formData.amount),
-            };
-
-            if (formData.recipientType === 'email') {
-                payload.recipientEmail = formData.recipientEmail;
-            } else {
-                payload.walletAddress = formData.walletAddress;
-            }
-
-            if (formData.message.trim()) {
-                payload.message = formData.message;
-            }
-
             const response = await giftVoucher(payload);
-
             setVoucherId(response.data.id);
             setShowSuccessModal(true);
-
-            setFormData({
-                recipientType: 'email',
-                recipientEmail: '',
-                walletAddress: '',
-                amount: '',
-                message: '',
-            });
+            reset();
         } catch (error: any) {
             setErrorMessage(error.message || 'Failed to process your request');
             setShowErrorModal(true);
         } finally {
             setIsSubmitting(false);
+            setPendingSubmission(null);
         }
     };
 
+    const closeModal = (modalSetter: React.Dispatch<React.SetStateAction<boolean>>) => {
+        modalSetter(false);
+    };
+
     return (
-        <>
-            <Card className="shadow-lg">
-                <Card.Header className="bg-primary text-white">
-                    <h2 className="text-center mb-0">Gift a Voucher</h2>
-                </Card.Header>
-                <Card.Body>
-                    <Form onSubmit={handleSubmit}>
-                        <Form.Group className="mb-3">
-                            <Form.Label>Send To</Form.Label>
-                            <Form.Select
-                                name="recipientType"
-                                value={formData.recipientType}
-                                onChange={handleRecipientTypeChange}
-                            >
+        <div className="voucher-form-container">
+            <div className="voucher-form-card">
+                <div className="voucher-form-header">
+                    <h2>Gift a Voucher</h2>
+                </div>
+                <div className="voucher-form-body">
+                    <form onSubmit={handleSubmit(onSubmit)} className="voucher-form">
+                        <div className="form-group">
+                            <label htmlFor="recipientType" className="form-label">
+                                Send To
+                            </label>
+                            <select id="recipientType" {...register('recipientType')} className="form-control">
                                 <option value="email">Email Address</option>
                                 <option value="wallet">Wallet Address</option>
-                            </Form.Select>
-                        </Form.Group>
+                            </select>
+                        </div>
 
-                        {formData.recipientType === 'email' && (
-                            <Form.Group className="mb-3">
-                                <Form.Label>Recipient Email</Form.Label>
-                                <Form.Control
+                        {recipientType === 'email' && (
+                            <div className="form-group">
+                                <label htmlFor="recipientEmail" className="form-label">
+                                    Recipient Email
+                                </label>
+                                <input
+                                    id="recipientEmail"
                                     type="email"
-                                    name="recipientEmail"
-                                    value={formData.recipientEmail}
-                                    onChange={handleChange}
+                                    {...register('recipientEmail')}
+                                    className={`form-control ${validationErrors.email ? 'error' : ''}`}
                                     placeholder="recipient@example.com"
-                                    isInvalid={!!errors.recipientEmail}
                                 />
-                                <Form.Control.Feedback type="invalid">{errors.recipientEmail}</Form.Control.Feedback>
-                            </Form.Group>
+                                {validationErrors.email && (
+                                    <div className="error-message" role="alert">
+                                        {validationErrors.email}
+                                    </div>
+                                )}
+                            </div>
                         )}
 
-                        {formData.recipientType === 'wallet' && (
-                            <Form.Group className="mb-3">
-                                <Form.Label>Wallet Address</Form.Label>
-                                <Form.Control
+                        {recipientType === 'wallet' && (
+                            <div className="form-group">
+                                <label htmlFor="walletAddress" className="form-label">
+                                    Wallet Address
+                                </label>
+                                <input
+                                    id="walletAddress"
                                     type="text"
-                                    name="walletAddress"
-                                    value={formData.walletAddress}
-                                    onChange={handleChange}
+                                    {...register('walletAddress')}
+                                    className={`form-control ${validationErrors.wallet ? 'error' : ''}`}
                                     placeholder="0x..."
-                                    isInvalid={!!errors.walletAddress}
                                 />
-                                <Form.Control.Feedback type="invalid">{errors.walletAddress}</Form.Control.Feedback>
-                            </Form.Group>
+                                {validationErrors.wallet && (
+                                    <div className="error-message" role="alert">
+                                        {validationErrors.wallet}
+                                    </div>
+                                )}
+                            </div>
                         )}
 
-                        <Form.Group className="mb-3">
-                            <Form.Label>Amount</Form.Label>
-                            <InputGroup>
-                                <InputGroup.Text>$</InputGroup.Text>
-                                <Form.Control
+                        <div className="form-group">
+                            <label htmlFor="amount" className="form-label">
+                                Amount
+                            </label>
+                            <div className="input-group">
+                                <span className="input-prefix">$</span>
+                                <input
+                                    id="amount"
                                     type="number"
-                                    name="amount"
-                                    value={formData.amount}
-                                    onChange={handleChange}
+                                    {...register('amount', { valueAsNumber: true })}
+                                    className={`form-control ${validationErrors.amount ? 'error' : ''}`}
                                     placeholder="100"
                                     min="1"
                                     step="1"
-                                    isInvalid={!!errors.amount}
                                 />
-                                <Form.Control.Feedback type="invalid">{errors.amount}</Form.Control.Feedback>
-                            </InputGroup>
-                        </Form.Group>
+                            </div>
+                            {validationErrors.amount && (
+                                <div className="error-message" role="alert">
+                                    {validationErrors.amount}
+                                </div>
+                            )}
+                        </div>
 
-                        <Form.Group className="mb-3">
-                            <Form.Label>Message (Optional)</Form.Label>
-                            <Form.Control
-                                as="textarea"
-                                name="message"
-                                value={formData.message}
-                                onChange={handleChange}
+                        <div className="form-group">
+                            <label htmlFor="message" className="form-label">
+                                Message (Optional)
+                            </label>
+                            <textarea
+                                id="message"
+                                {...register('message')}
+                                className="form-control"
                                 placeholder="Add a personal message..."
                                 rows={3}
                             />
-                        </Form.Group>
+                        </div>
 
-                        <div className="d-grid gap-2">
-                            <Button type="submit" disabled={isSubmitting}>
+                        <div className="form-actions">
+                            <button type="submit" disabled={isSubmitting} className="btn btn-primary">
                                 {isSubmitting ? (
                                     <>
-                                        <span
-                                            className="spinner-border spinner-border-sm me-2"
-                                            role="status"
-                                            aria-hidden="true"
-                                        ></span>
+                                        <span className="spinner" aria-hidden="true"></span>
                                         Processing...
                                     </>
                                 ) : (
                                     'Send Gift'
                                 )}
-                            </Button>
+                            </button>
                         </div>
-                    </Form>
-                </Card.Body>
-            </Card>
+                    </form>
+                </div>
+            </div>
 
             {/* Success Modal */}
-            <Modal show={showSuccessModal} onHide={() => setShowSuccessModal(false)}>
-                <Modal.Header className="bg-success text-white">
-                    <Modal.Title>Success!</Modal.Title>
-                    <Button variant="close" onClick={() => setShowSuccessModal(false)} aria-label="Close" />
-                </Modal.Header>
-                <Modal.Body>
-                    <p>Your voucher has been sent successfully!</p>
-                    <p>
-                        Voucher ID: <strong>{voucherId}</strong>
-                    </p>
-                </Modal.Body>
-                <Modal.Footer>
-                    <Button variant="secondary" onClick={() => setShowSuccessModal(false)}>
-                        Close
-                    </Button>
-                </Modal.Footer>
-            </Modal>
+            {showSuccessModal && (
+                <div className="modal-overlay" onClick={() => closeModal(setShowSuccessModal)}>
+                    <div className="modal success-modal" onClick={e => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h3>Success!</h3>
+                            <button
+                                className="close-btn"
+                                onClick={() => closeModal(setShowSuccessModal)}
+                                aria-label="Close"
+                            >
+                                ×
+                            </button>
+                        </div>
+                        <div className="modal-body">
+                            <p>Your voucher has been sent successfully!</p>
+                            <p>
+                                Voucher ID: <strong>{voucherId}</strong>
+                            </p>
+                        </div>
+                        <div className="modal-footer">
+                            <button className="btn btn-secondary" onClick={() => closeModal(setShowSuccessModal)}>
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Error Modal */}
-            <Modal show={showErrorModal} onHide={() => setShowErrorModal(false)}>
-                <Modal.Header className="bg-danger text-white">
-                    <Modal.Title>Error</Modal.Title>
-                    <Button variant="close" onClick={() => setShowErrorModal(false)} aria-label="Close" />
-                </Modal.Header>
-                <Modal.Body>
-                    <p>{errorMessage}</p>
-                </Modal.Body>
-                <Modal.Footer>
-                    <Button variant="secondary" onClick={() => setShowErrorModal(false)}>
-                        Close
-                    </Button>
-                </Modal.Footer>
-            </Modal>
-        </>
+            {showErrorModal && (
+                <div className="modal-overlay" onClick={() => closeModal(setShowErrorModal)}>
+                    <div className="modal error-modal" onClick={e => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h3>Error</h3>
+                            <button
+                                className="close-btn"
+                                onClick={() => closeModal(setShowErrorModal)}
+                                aria-label="Close"
+                            >
+                                ×
+                            </button>
+                        </div>
+                        <div className="modal-body">
+                            <p>{errorMessage}</p>
+                        </div>
+                        <div className="modal-footer">
+                            <button className="btn btn-secondary" onClick={() => closeModal(setShowErrorModal)}>
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* High Value Confirmation Modal */}
+            {showHighValueConfirmModal && (
+                <div className="modal-overlay" onClick={() => closeModal(setShowHighValueConfirmModal)}>
+                    <div className="modal warning-modal" onClick={e => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h3>Confirm High-Value Voucher</h3>
+                            <button
+                                className="close-btn"
+                                onClick={() => closeModal(setShowHighValueConfirmModal)}
+                                aria-label="Close"
+                            >
+                                ×
+                            </button>
+                        </div>
+                        <div className="modal-body">
+                            <div className="warning-alert">
+                                <h4>You are about to send a high-value voucher!</h4>
+                                <p>
+                                    You are creating a voucher for <strong>${amount}</strong>.
+                                </p>
+                                <p>Please confirm that this amount is correct before proceeding.</p>
+                            </div>
+                        </div>
+                        <div className="modal-footer">
+                            <button
+                                className="btn btn-secondary"
+                                onClick={() => closeModal(setShowHighValueConfirmModal)}
+                            >
+                                Cancel
+                            </button>
+                            <button className="btn btn-warning" onClick={handleHighValueConfirm}>
+                                Confirm Amount
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
     );
 };
 
