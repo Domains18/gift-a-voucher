@@ -1,5 +1,89 @@
 # Gift a Voucher Feature - Architecture, Monitoring, and Security Considerations
 
+## Key Questions for Loom Recording
+
+### 1. What is the current test coverage on the API and front end?
+
+The "Gift a Voucher" feature has comprehensive test coverage across both API and frontend components:
+
+**API Test Coverage:**
+- **Handler Tests**: Complete coverage for `giftVoucherHandler` including validation, database operations, error handling, and edge cases
+- **Middleware Tests**: Full coverage for `rateLimiter` middleware, testing request limiting, IP tracking, and high-value transaction limits
+- **Service Tests**: Comprehensive tests for `idempotencyService`, `DynamoDBService`, and `SQSService`
+- **Edge Cases**: Tests for validation errors, high-value vouchers, amount limits, and idempotency
+
+**Frontend Test Coverage:**
+- **Component Tests**: Tests for the VoucherForm component
+- **Validation Tests**: Form validation for email/wallet address, amount limits
+- **UI State Tests**: Tests for loading states, success/error modals
+- **API Integration Tests**: Mocking and testing API interactions
+
+The test suite is thorough and covers critical paths and edge cases in both the API and frontend, ensuring the reliability and security of the voucher gifting feature.
+
+### 2. Implement basic rate limiting needed?
+
+Yes, rate limiting has been implemented through the `rateLimiter` middleware to protect the API from abuse and potential DoS attacks:
+
+**Implementation Details:**
+- **Request Limiting**: Restricts the number of requests per IP address within a configurable time window
+- **Tiered Limits**: Standard requests are limited to `MAX_REQUESTS` per window, while high-value voucher requests have a stricter limit of `HIGH_VALUE_MAX_REQUESTS`
+- **Storage**: Uses an in-memory store with TTL for tracking request counts (in production, this would be replaced with Redis or another distributed cache)
+- **Response Handling**: Returns appropriate 429 (Too Many Requests) responses when limits are exceeded, with retry-after headers
+
+**Benefits:**
+- Prevents API abuse and brute force attacks
+- Provides additional protection for high-value transactions
+- Improves overall system stability under load
+- Offers clear feedback to clients through standard rate limit headers
+
+### 3. Users can create vouchers worth millions of dollars with no limits. Add voucher amount limits and/or transaction confirmation for high-value vouchers.
+
+I've implemented two key protections to address this concern:
+
+**1. Maximum Amount Limit:**
+- The `VoucherGiftSchema` validation enforces a maximum voucher amount (currently set to $10,000)
+- Attempts to create vouchers exceeding this limit are rejected with validation errors
+- This provides a hard cap on voucher values to prevent extreme financial exposure
+
+**2. High-Value Confirmation Requirement:**
+- For vouchers above a threshold (defined by `HIGH_VALUE_THRESHOLD`, currently $1,000)
+- The system requires explicit confirmation through a `confirmHighValue: true` flag in the request
+- Without this confirmation, high-value voucher requests are rejected
+- This adds an extra safety layer against accidental large transfers
+
+**Implementation:**
+- The validation logic is implemented in the `VoucherGiftSchema` using Zod
+- The handler checks for the confirmation flag when processing high-value requests
+- Clear error messages guide users on the requirements for high-value transactions
+
+### 4. Seems that it is possible for a customer to request the same voucher could be created multiple times, causing financial losses! An email can be sent to a user multiple times as they keep trying to process the same voucher. How do you prevent this on your system?
+
+I've implemented a robust idempotency system to prevent duplicate voucher creation:
+
+**Idempotency Implementation:**
+
+1. **Idempotency Keys:**
+   - Each voucher request must include an idempotency key (a unique identifier for the transaction)
+   - For client-side generated keys, we use UUIDs to ensure uniqueness
+   - The key is included in the request payload and stored with the voucher record
+
+2. **Idempotency Service:**
+   - The `IdempotencyService` checks if a request with the same key has been processed before
+   - If a matching record exists, it returns the existing voucher instead of creating a new one
+   - If no matching record exists, it processes the request normally and saves the idempotency record
+   - This ensures exactly-once processing semantics
+
+3. **TTL-based Storage:**
+   - Idempotency records are stored with a TTL (Time-To-Live) of 7 days
+   - This provides a reasonable window for retry protection while not keeping records indefinitely
+   - After the TTL expires, the record is automatically removed from the database
+
+**Benefits:**
+- Prevents duplicate voucher creation even with network issues or client retries
+- Ensures consistent responses for repeated requests
+- Maintains a good user experience while protecting against financial losses
+- Scales well with a TTL-based cleanup strategy
+
 ## 1. Architecture
 
 ### Why use SQS for this feature?
@@ -28,7 +112,7 @@ Amazon Simple Queue Service (SQS) was chosen for the voucher gifting process for
 
 Our implementation includes a robust retry and failure handling mechanism:
 
-1. **Configurable Retry Limits**: We've implemented a maximum retry count (MAX_RETRY_COUNT) to prevent infinite retry loops.
+1. **Configurable Retry Limits**: I  implemented a maximum retry count (MAX_RETRY_COUNT) to prevent infinite retry loops.
 
 2. **Error Classification**: Not all errors are equal. We classify errors into retryable (e.g., network timeouts, connection issues) and non-retryable (e.g., validation errors) categories.
 

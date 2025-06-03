@@ -13,6 +13,14 @@ A feature for a digital marketplace that allows users to gift vouchers to recipi
 - Comprehensive test suite using Vitest
 - Comprehensive Logging on the backend
 
+## Security Features
+
+- **Rate Limiting**: Prevents abuse by limiting requests per IP address, with stricter limits for high-value transactions
+- **Amount Limits**: Maximum voucher amount enforced through validation
+- **High-Value Confirmation**: Additional confirmation required for high-value vouchers
+- **Idempotency**: Prevents duplicate voucher creation through idempotency keys
+- **Input Validation**: Strict validation using Zod schema
+
 ## Technologies
 
 ### Backend
