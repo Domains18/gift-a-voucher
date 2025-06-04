@@ -1,6 +1,6 @@
 # Gift a Voucher Feature - Architecture, Monitoring, and Security Considerations
 
-## Key Questions for Loom Recording
+## presentation 
 
 ### 1. What is the current test coverage on the API and front end?
 
@@ -22,7 +22,7 @@ The test suite is thorough and covers critical paths and edge cases in both the 
 
 ### 2. Implement basic rate limiting needed?
 
-Yes, rate limiting has been implemented through the `rateLimiter` middleware to protect the API from abuse and potential DoS attacks:
+Rate limiting has been implemented through the `rateLimiter` middleware to protect the API from abuse and potential DoS attacks:
 
 **Implementation Details:**
 - **Request Limiting**: Restricts the number of requests per IP address within a configurable time window
